@@ -1,0 +1,93 @@
+/* Advanced styling for Patient Dashboard */
+.patient-dashboard-container {
+  max-width: 480px;
+  margin: 2.5em auto;
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 8px 32px rgba(44, 62, 80, 0.13);
+  padding: 2.5em 2em 2em 2em;
+  font-family: 'Segoe UI', 'Roboto', Arial, sans-serif;
+}
+.patient-dashboard-title {
+  text-align: center;
+  color: #2d3a4b;
+  font-size: 2.1rem;
+  font-weight: 700;
+  margin-bottom: 1.2em;
+  letter-spacing: 0.5px;
+}
+.patient-dashboard-form label {
+  display: block;
+  margin-bottom: 0.7em;
+  font-weight: 500;
+  color: #3a4a5d;
+}
+.patient-dashboard-form input {
+  width: 100%;
+  padding: 0.7em 1em;
+  border: 1.5px solid #dbeafe;
+  border-radius: 7px;
+  font-size: 1.05rem;
+  margin-top: 0.3em;
+  margin-bottom: 1.1em;
+  background: #f8fafc;
+  transition: border 0.2s;
+}
+.patient-dashboard-form input:focus {
+  border: 1.5px solid #4f8cff;
+  outline: none;
+  background: #eaf4ff;
+}
+.patient-dashboard-form button {
+  width: 100%;
+  padding: 0.9em 0;
+  background: linear-gradient(90deg, #4f8cff 0%, #38b6ff 100%);
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  margin-top: 0.5em;
+  box-shadow: 0 2px 8px rgba(44, 62, 80, 0.08);
+  transition: background 0.2s;
+}
+.patient-dashboard-form button:disabled {
+  background: #b6d4fe;
+  cursor: not-allowed;
+}
+.patient-dashboard-form button:hover:not(:disabled) {
+  background: linear-gradient(90deg, #38b6ff 0%, #4f8cff 100%);
+}
+.patient-dashboard-result {
+  margin-top: 2em;
+  padding: 1.5em 1.2em;
+  background: #f0f7ff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(44, 62, 80, 0.06);
+  text-align: center;
+  font-size: 1.18rem;
+  color: #2d3a4b;
+}
+.patient-dashboard-result .risk {
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin-bottom: 0.5em;
+  display: block;
+}
+.patient-dashboard-result .probability {
+  font-size: 1.1rem;
+  color: #4f8cff;
+  font-weight: 600;
+}
+.patient-dashboard-error {
+  color: #e74c3c;
+  background: #fff0f0;
+  border: 1px solid #ffd6d6;
+  border-radius: 7px;
+  padding: 0.8em 1em;
+  margin-top: 1.2em;
+  text-align: center;
+  font-size: 1.05rem;
+}

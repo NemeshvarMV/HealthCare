@@ -1,0 +1,24 @@
+# FastAPI backend requirements
+fastapi
+uvicorn
+python-jose[cryptography]
+passlib[bcrypt]
+psycopg2-binary
+sqlalchemy
+alembic
+redis
+python-dotenv
+httpx
+pydantic[email]
+celery
+aioredis
+jinja2
+python-multipart
+razorpay
+requests
+# For notifications
+sendgrid
+# For video integration (Twilio)
+twilio
+# For logging
+gunicorn
