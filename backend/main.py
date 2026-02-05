@@ -1,3 +1,21 @@
+# Pydantic model for patient update
+
+# Get the logged-in patient's full profile
+from jose import JWTError
+
+# ...existing code...
+
+# Patient profile endpoint
+
+# Update the logged-in doctor's profile
+from pydantic import BaseModel
+
+
+# Get the logged-in doctor's full profile
+from fastapi import status
+from fastapi.responses import JSONResponse
+
+
 # List all booked appointments for the logged-in doctor
 
 # List all doctors (for patient booking UI)
@@ -74,6 +92,8 @@ def add_weekly_availability(slot: WeeklyAvailabilitySlot, token: str = Depends(o
         db: Session = SessionLocal()
         doctor = db.query(DBDoctor).filter(DBDoctor.email == email).first()
         print(f"[DEBUG] Doctor lookup: {doctor}")
+        if doctor:
+            print(f"[DEBUG] Adding slot for doctor_id={doctor.id}, email={doctor.email}, slot={slot}")
         if not doctor:
             print("[DEBUG] Doctor not found.")
             raise HTTPException(status_code=404, detail="Doctor not found.")
@@ -96,10 +116,12 @@ def add_weekly_availability(slot: WeeklyAvailabilitySlot, token: str = Depends(o
         print("[DEBUG] New WeeklyAvailability instance created.")
         db.add(new_slot)
         print("[DEBUG] Added new_slot to session.")
-        db.commit()
-        print("[DEBUG] Committed new_slot to DB.")
+        db.flush()  # Ensure the slot is written to the DB before commit
+        print(f"[DEBUG] Flushed new_slot: id={getattr(new_slot, 'id', None)}")
         db.refresh(new_slot)
         print(f"[DEBUG] Refreshed new_slot: id={new_slot.id}")
+        db.commit()
+        print("[DEBUG] Committed new_slot to DB.")
         return {"msg": "Weekly availability slot added", "id": new_slot.id}
     except Exception as e:
         import traceback
@@ -125,6 +147,8 @@ def list_weekly_availability(token: str = Depends(oauth2_scheme)):
         db: Session = SessionLocal()
         doctor = db.query(DBDoctor).filter(DBDoctor.email == email).first()
         print(f"[DEBUG] Doctor lookup: {doctor}")
+        if doctor:
+            print(f"[DEBUG] Listing slots for doctor_id={doctor.id}, email={doctor.email}")
         if not doctor:
             print("[DEBUG] Doctor not found.")
             raise HTTPException(status_code=404, detail="Doctor not found.")
@@ -333,11 +357,14 @@ from sqlalchemy.orm import Session
 
 
 # User registration model
+import random
+
 class User(BaseModel):
     email: EmailStr
     full_name: str
     password: str
     role: str  # 'patient' or 'doctor'
+    phone_number: str
 
 # Doctor registration model
 class DoctorRegister(BaseModel):
@@ -361,14 +388,19 @@ def register_doctor(doctor: DoctorRegister):
         if len(doctor.password) > 72:
             logging.error(f"Password too long for {doctor.email}: {len(doctor.password)} characters")
             raise HTTPException(status_code=400, detail="Password cannot be longer than 72 characters.")
+        # Enforce required fields
+        if not doctor.clinic_address or not doctor.clinic_address.strip():
+            raise HTTPException(status_code=400, detail="Clinic address is required.")
+        if not doctor.phone_number or not doctor.phone_number.strip():
+            raise HTTPException(status_code=400, detail="Phone number is required.")
         hashed_password = get_password_hash(doctor.password)
         db_doctor = DBDoctor(
             email=doctor.email,
             full_name=doctor.full_name,
             hashed_password=hashed_password,
             specialization=doctor.specialization,
-            clinic_address=doctor.clinic_address,
-            phone_number=doctor.phone_number
+            clinic_address=doctor.clinic_address.strip(),
+            phone_number=doctor.phone_number.strip()
         )
         db.add(db_doctor)
         db.commit()
@@ -597,8 +629,11 @@ def register(user: User):
         if len(user.password) > 72:
             logging.error(f"Password too long for {user.email}: {len(user.password)} characters")
             raise HTTPException(status_code=400, detail="Password cannot be longer than 72 characters.")
+        # Require phone number for all patients
+        if user.role == 'patient' and not user.phone_number:
+            raise HTTPException(status_code=400, detail='Phone number is required for patients.')
         hashed_password = get_password_hash(user.password)
-        db_user = DBUser(email=user.email, full_name=user.full_name, hashed_password=hashed_password, role=user.role)
+        db_user = DBUser(email=user.email, full_name=user.full_name, hashed_password=hashed_password, role=user.role, phone_number=user.phone_number)
         db.add(db_user)
         db.commit()
         db.refresh(db_user)
@@ -608,6 +643,21 @@ def register(user: User):
         db.rollback()
         logging.error(f"Registration failed for {user.email}: {e}")
         raise HTTPException(status_code=500, detail="Registration failed")
+    finally:
+        db.close()
+# Utility endpoint to assign random phone numbers to existing patients without one
+@app.post("/patients/assign-random-phone")
+def assign_random_phone_numbers():
+    db: Session = SessionLocal()
+    try:
+        patients = db.query(DBUser).filter(DBUser.role == 'patient').all()
+        updated = 0
+        for patient in patients:
+            if not getattr(patient, 'phone_number', None):
+                patient.phone_number = ''.join([str(random.randint(0,9)) for _ in range(10)])
+                updated += 1
+        db.commit()
+        return {"updated": updated}
     finally:
         db.close()
 
@@ -696,9 +746,11 @@ class AppointmentRequest(BaseModel):
 def get_doctor_available_slots(doctor_id: int):
     db: Session = SessionLocal()
     try:
+        print(f"[DEBUG] Fetching available slots for doctor_id={doctor_id}")
         from datetime import date, datetime, timedelta, time as dtime
         today = date.today()
         slots = db.query(DBWeeklyAvailability).filter(DBWeeklyAvailability.doctor_id == doctor_id).all()
+        print(f"[DEBUG] Weekly slots found: {slots}")
         result = []
         slot_duration = timedelta(minutes=30)
         for i in range(7):
@@ -826,13 +878,15 @@ def doctor_appointments(token: str = Depends(oauth2_scheme)):
         result = []
         for a in appts:
             patient = db.query(DBUser).filter(DBUser.id == a.patient_id).first()
+            phone_number = getattr(patient, 'phone_number', None)
             result.append({
                 "id": a.id,
                 "patient_name": patient.full_name if patient else None,
                 "scheduled_time": a.scheduled_time,
                 "status": a.status,
-                "appointment_type": a.appointment_type if hasattr(a, 'appointment_type') else None,
-                "video_call_link": a.video_call_link if hasattr(a, 'video_call_link') else None
+                "appointment_type": getattr(a, 'appointment_type', None),
+                "video_call_link": getattr(a, 'video_call_link', None),
+                "phone_number": phone_number
             })
         return result
     finally:
@@ -856,17 +910,147 @@ def patient_appointments(token: str = Depends(oauth2_scheme)):
         result = []
         for a in appts:
             doctor = db.query(DBDoctor).filter(DBDoctor.id == a.doctor_id).first()
+            clinic_address = doctor.clinic_address if doctor else None
+            phone_number = doctor.phone_number if doctor else None
+            map_link = None
+            if clinic_address:
+                map_link = f"https://www.google.com/maps/search/?api=1&query={clinic_address.replace(' ', '+')}"
             result.append({
                 "id": a.id,
                 "doctor_name": doctor.full_name if doctor else None,
                 "scheduled_time": a.scheduled_time,
                 "status": a.status,
-                "appointment_type": a.appointment_type if hasattr(a, 'appointment_type') else None,
-                "video_call_link": a.video_call_link if hasattr(a, 'video_call_link') else None,
-                "clinic_address": doctor.clinic_address if doctor and a.appointment_type == 'in-person' else None,
-                "phone_number": doctor.phone_number if doctor and a.appointment_type == 'in-person' else None
+                "appointment_type": getattr(a, 'appointment_type', None),
+                "video_call_link": getattr(a, 'video_call_link', None),
+                "clinic_address": clinic_address,
+                "phone_number": phone_number,
+                "map_link": map_link
             })
         return result
+    finally:
+        if 'db' in locals():
+            db.close()
+@app.get("/doctor/me")
+def get_doctor_profile(token: str = Depends(oauth2_scheme)):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email = payload.get("sub")
+        role = payload.get("role")
+        if role != "doctor":
+            raise HTTPException(status_code=403, detail="Only doctors can access this endpoint.")
+        db: Session = SessionLocal()
+        doctor = db.query(DBDoctor).filter(DBDoctor.email == email).first()
+        if not doctor:
+            raise HTTPException(status_code=404, detail="Doctor not found.")
+        # Return all relevant doctor fields
+        return {
+            "id": doctor.id,
+            "full_name": doctor.full_name,
+            "email": doctor.email,
+            "specialization": doctor.specialization,
+            "clinic_address": doctor.clinic_address,
+            "phone_number": doctor.phone_number
+        }
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    finally:
+        if 'db' in locals():
+            db.close()
+
+class DoctorUpdate(BaseModel):
+    full_name: str
+    specialization: str
+    clinic_address: str
+    phone_number: str
+
+@app.put("/doctor/me")
+def update_doctor_profile(update: DoctorUpdate, token: str = Depends(oauth2_scheme)):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email = payload.get("sub")
+        role = payload.get("role")
+        if role != "doctor":
+            raise HTTPException(status_code=403, detail="Only doctors can update their profile.")
+        db: Session = SessionLocal()
+        doctor = db.query(DBDoctor).filter(DBDoctor.email == email).first()
+        if not doctor:
+            raise HTTPException(status_code=404, detail="Doctor not found.")
+        doctor.full_name = update.full_name
+        doctor.specialization = update.specialization
+        doctor.clinic_address = update.clinic_address
+        doctor.phone_number = update.phone_number
+        db.commit()
+        db.refresh(doctor)
+        return {
+            "id": doctor.id,
+            "full_name": doctor.full_name,
+            "email": doctor.email,
+            "specialization": doctor.specialization,
+            "clinic_address": doctor.clinic_address,
+            "phone_number": doctor.phone_number
+        }
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    finally:
+        if 'db' in locals():
+            db.close()
+
+@app.get("/patient/me")
+def get_patient_profile(token: str = Depends(oauth2_scheme)):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email = payload.get("sub")
+        role = payload.get("role")
+        if role != "patient":
+            raise HTTPException(status_code=403, detail="Only patients can access this endpoint.")
+        db: Session = SessionLocal()
+        patient = db.query(DBUser).filter(DBUser.email == email).first()
+        if not patient:
+            raise HTTPException(status_code=404, detail="Patient not found.")
+        return {
+            "id": patient.id,
+            "full_name": patient.full_name,
+            "email": patient.email,
+            "phone_number": patient.phone_number
+        }
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    finally:
+        if 'db' in locals():
+            db.close()
+
+class PatientUpdate(BaseModel):
+    full_name: str
+    email: EmailStr
+    phone_number: str
+
+# Update the logged-in patient's profile
+@app.put("/patient/me")
+def update_patient_profile(update: PatientUpdate, token: str = Depends(oauth2_scheme)):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email = payload.get("sub")
+        role = payload.get("role")
+        if role != "patient":
+            raise HTTPException(status_code=403, detail="Only patients can update their profile.")
+        db: Session = SessionLocal()
+        patient = db.query(DBUser).filter(DBUser.email == email).first()
+        if not patient:
+            raise HTTPException(status_code=404, detail="Patient not found.")
+        # Update fields
+        patient.full_name = update.full_name
+        patient.email = update.email
+        patient.phone_number = update.phone_number
+        db.commit()
+        db.refresh(patient)
+        return {
+            "id": patient.id,
+            "full_name": patient.full_name,
+            "email": patient.email,
+            "phone_number": patient.phone_number
+        }
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
     finally:
         if 'db' in locals():
             db.close()

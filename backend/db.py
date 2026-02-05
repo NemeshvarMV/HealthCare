@@ -20,6 +20,7 @@ class User(Base):
     full_name = Column(String, nullable=False)
     hashed_password = Column(String, nullable=False)
     role = Column(String, nullable=False)
+    phone_number = Column(String, nullable=True)
 
 # Doctor model
 class Doctor(Base):

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { Box, Button, TextField, Typography, Paper, Alert } from '@mui/material';
 import FloatingSVGBackground from '../components/FloatingSVGBackground';
+import BackButton from '../components/BackButton';
 
 const DoctorRegister = () => {
   const [form, setForm] = useState({
@@ -30,76 +31,87 @@ const DoctorRegister = () => {
   };
 
   return (
-    <>
+    <div className="relative min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-blue-400 via-blue-200 to-green-300 overflow-hidden">
       <FloatingSVGBackground />
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh" sx={{ position: 'relative', zIndex: 1 }}>
-        <Paper elevation={3} sx={{ p: 4, minWidth: 400, borderRadius: 3, background: 'rgba(255,255,255,0.85)' }}>
-          <Typography variant="h4" align="center" gutterBottom>Doctor Registration</Typography>
-          {message && <Alert severity={message.includes('success') ? 'success' : 'error'} sx={{ mb: 2 }}>{message}</Alert>}
-          <form onSubmit={handleSubmit}>
-            <TextField
+      <div className="relative z-10 w-full max-w-xl mx-auto bg-white/90 rounded-2xl shadow-xl p-6 md:p-10 mt-8 mb-8">
+        <BackButton />
+        <h2 className="text-3xl font-bold text-center mb-6 text-blue-700 tracking-tight">Doctor Registration</h2>
+        {message && <div className={`rounded px-4 py-3 mb-4 text-center font-medium ${message.includes('success') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{message}</div>}
+        <form className="w-full flex flex-col gap-5" onSubmit={handleSubmit} autoComplete="off">
+          <div>
+            <label className="block text-gray-700 font-semibold mb-1">Email</label>
+            <input
               name="email"
-              label="Email"
               type="email"
               value={form.email}
               onChange={handleChange}
-              fullWidth
-              margin="normal"
               required
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+              placeholder="Enter your email"
             />
-            <TextField
+          </div>
+          <div>
+            <label className="block text-gray-700 font-semibold mb-1">Full Name</label>
+            <input
               name="full_name"
-              label="Full Name"
               value={form.full_name}
               onChange={handleChange}
-              fullWidth
-              margin="normal"
               required
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+              placeholder="Enter your full name"
             />
-            <TextField
+          </div>
+          <div>
+            <label className="block text-gray-700 font-semibold mb-1">Password</label>
+            <input
               name="password"
-              label="Password"
               type="password"
               value={form.password}
               onChange={handleChange}
-              fullWidth
-              margin="normal"
               required
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+              placeholder="Enter your password"
             />
-            <TextField
+          </div>
+          <div>
+            <label className="block text-gray-700 font-semibold mb-1">Specialization</label>
+            <input
               name="specialization"
-              label="Specialization"
               value={form.specialization}
               onChange={handleChange}
-              fullWidth
-              margin="normal"
               required
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+              placeholder="Enter your specialization"
             />
-            <TextField
+          </div>
+          <div>
+            <label className="block text-gray-700 font-semibold mb-1">Clinic Address</label>
+            <input
               name="clinic_address"
-              label="Clinic Address"
               value={form.clinic_address}
               onChange={handleChange}
-              fullWidth
-              margin="normal"
               required
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+              placeholder="Enter your clinic address"
             />
-            <TextField
+          </div>
+          <div>
+            <label className="block text-gray-700 font-semibold mb-1">Phone Number</label>
+            <input
               name="phone_number"
-              label="Phone Number"
               value={form.phone_number}
               onChange={handleChange}
-              fullWidth
-              margin="normal"
               required
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+              placeholder="Enter your phone number"
             />
-            <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 2 }}>
-              Register
-            </Button>
-          </form>
-        </Paper>
-      </Box>
-    </>
+          </div>
+          <button type="submit" className="w-full bg-gradient-to-r from-blue-500 to-green-500 text-white font-semibold px-6 py-3 rounded-lg shadow hover:from-blue-600 hover:to-green-600 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all">
+            Register
+          </button>
+        </form>
+      </div>
+    </div>
   );
 };
 

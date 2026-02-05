@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Box, Button, Typography, Paper, Stack } from '@mui/material';
 import FloatingSVGBackground from '../components/FloatingSVGBackground';
+import BackButton from '../components/BackButton';
 
 const ChooseRole = () => {
   const navigate = useNavigate();
@@ -20,10 +21,11 @@ const ChooseRole = () => {
   };
 
   return (
-    <>
+    <div style={{ minHeight: '100vh', width: '100vw', background: 'linear-gradient(135deg, #42a5f5 0%, #81c784 100%)', position: 'relative', overflow: 'hidden' }}>
       <FloatingSVGBackground />
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh" sx={{ position: 'relative', zIndex: 1 }}>
         <Paper elevation={3} sx={{ p: 4, minWidth: 350, borderRadius: 3, background: 'rgba(255,255,255,0.85)' }}>
+          <BackButton />
           <Typography variant="h4" align="center" gutterBottom>
             {isRegister ? 'Register' : 'Login'} as
           </Typography>
@@ -37,7 +39,7 @@ const ChooseRole = () => {
           </Stack>
         </Paper>
       </Box>
-    </>
+    </div>
   );
 };
 

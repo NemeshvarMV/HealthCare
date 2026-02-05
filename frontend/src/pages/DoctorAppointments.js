@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import FloatingSVGBackground from '../components/FloatingSVGBackground';
+import BackButton from '../components/BackButton';
 
 const API_URL = 'http://localhost:8000';
 
@@ -31,44 +32,47 @@ function DoctorAppointments() {
   }, [token]);
 
   return (
-    <>
+    <div className="relative min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-blue-400 via-blue-200 to-green-300 overflow-hidden">
       <FloatingSVGBackground />
-      <div className="container mt-4" style={{ position: 'relative', zIndex: 1, background: 'rgba(255,255,255,0.85)', borderRadius: '16px', padding: '2rem' }}>
-        <h2>My Appointments</h2>
-        {loading && <div>Loading...</div>}
-        {message && <div className="alert alert-info mt-3">{message}</div>}
+      <div className="relative z-10 w-full max-w-6xl mx-auto bg-white/90 rounded-2xl shadow-xl p-6 md:p-10 mt-8 mb-8">
+        <BackButton />
+        <h2 className="text-3xl font-bold text-blue-700 mb-6 text-center tracking-tight">My Appointments</h2>
+        {loading && <div className="text-blue-500 font-medium mb-4">Loading...</div>}
+        {message && <div className="bg-blue-100 text-blue-800 rounded px-4 py-3 mb-4 text-center font-medium">{message}</div>}
         {appointments.length > 0 && (
-          <table className="table table-bordered mt-3">
-            <thead>
-              <tr>
-                <th>Patient Name</th>
-                <th>Scheduled Time</th>
-                <th>Status</th>
-                <th>Type</th>
-                <th>Video Call Link</th>
-              </tr>
-            </thead>
-            <tbody>
-              {appointments.map((appt) => (
-                <tr key={appt.id}>
-                  <td>{appt.patient_name || 'N/A'}</td>
-                  <td>{appt.scheduled_time ? new Date(appt.scheduled_time).toLocaleString() : 'N/A'}</td>
-                  <td>{appt.status}</td>
-                  <td>{appt.appointment_type || 'N/A'}</td>
-                  <td>
-                    {appt.appointment_type === 'online' && appt.video_call_link ? (
-                      <a href={appt.video_call_link} target="_blank" rel="noopener noreferrer">Join Call</a>
-                    ) : (
-                      '-'
-                    )}
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="min-w-full table-auto border border-gray-200 rounded-lg shadow-sm mt-3">
+              <thead className="bg-blue-50">
+                <tr>
+                  <th className="px-4 py-2 text-left text-blue-700 font-semibold">Patient Name</th>
+                  <th className="px-4 py-2 text-left text-blue-700 font-semibold">Scheduled Time</th>
+                  <th className="px-4 py-2 text-left text-blue-700 font-semibold">Status</th>
+                  <th className="px-4 py-2 text-left text-blue-700 font-semibold">Type</th>
+                  <th className="px-4 py-2 text-left text-blue-700 font-semibold">Video Call Link</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {appointments.map((appt) => (
+                  <tr key={appt.id} className="even:bg-blue-50 hover:bg-blue-100 transition-colors">
+                    <td className="px-4 py-2">{appt.patient_name || 'N/A'}</td>
+                    <td className="px-4 py-2">{appt.scheduled_time ? new Date(appt.scheduled_time).toLocaleString() : 'N/A'}</td>
+                    <td className="px-4 py-2">{appt.status}</td>
+                    <td className="px-4 py-2">{appt.appointment_type || 'N/A'}</td>
+                    <td className="px-4 py-2">
+                      {appt.appointment_type === 'online' && appt.video_call_link ? (
+                        <a href={appt.video_call_link} target="_blank" rel="noopener noreferrer" className="text-green-600 underline">Join Call</a>
+                      ) : (
+                        '-'
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
-    </>
+    </div>
   );
 }
 

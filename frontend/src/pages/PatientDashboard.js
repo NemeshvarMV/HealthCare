@@ -14,7 +14,7 @@ function parseJwt (token) {
 }
 
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { predictFibromyalgia } from '../api/fibromyalgia';
 import { generateReport } from '../api/report';
@@ -23,9 +23,58 @@ import './PatientDashboard.css';
 import './PatientDashboardChatbot.css';
 import { sendChatbotMessage } from '../api/chatbot';
 import FloatingSVGBackground from '../components/FloatingSVGBackground';
+import BackButton from '../components/BackButton';
+import LogoutButton from '../components/LogoutButton';
 
 function PatientDashboard() {
   const navigate = useNavigate();
+  // Patient profile state
+  const [patient, setPatient] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState({});
+
+  // Fetch patient info after login
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    fetch('http://localhost:8000/patient/me', {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(data => setPatient(data))
+      .catch(() => setPatient(null));
+  }, []);
+
+  const handleEditProfile = () => {
+    setEditForm({ ...patient });
+    setShowEditModal(true);
+  };
+  const handleEditChange = (e) => {
+    setEditForm({ ...editForm, [e.target.name]: e.target.value });
+  };
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch('http://localhost:8000/patient/me', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(editForm)
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setPatient(updated);
+        setShowEditModal(false);
+      }
+    } catch {}
+  };
+  const handleEditCancel = () => {
+    setEditForm({ ...patient });
+    setShowEditModal(false);
+  };
   const [form, setForm] = useState({
     age: '',
     sex: '',
@@ -115,44 +164,124 @@ function PatientDashboard() {
   };
 
   return (
-    <>
+    <div className="relative min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-blue-400 via-blue-200 to-green-300 overflow-hidden">
       <FloatingSVGBackground />
-      <div className="patient-dashboard-container" style={{ position: 'relative', zIndex: 1, background: 'rgba(255,255,255,0.85)', borderRadius: '16px', padding: '2rem' }}>
-        <div className="patient-dashboard-title">Patient Dashboard</div>
-        <div style={{ display: 'flex', gap: '1em', marginBottom: '1.5em' }}>
+      <div className="relative z-10 w-full max-w-3xl mx-auto bg-white/90 rounded-2xl shadow-xl p-6 md:p-10 mt-8 mb-8">
+        <div className="flex justify-between items-center flex-wrap mb-4">
+          <BackButton />
+          <LogoutButton />
+        </div>
+        <div className="text-3xl font-bold text-center mb-6 text-blue-700 tracking-tight">Patient Dashboard</div>
+        {patient && (
+          <div className="mb-8 flex flex-col md:flex-row md:items-center md:gap-8">
+            <div className="flex-1 bg-gradient-to-r from-blue-100 to-green-100 rounded-xl p-6 shadow-md mb-4 md:mb-0">
+              <h3 className="text-2xl font-semibold text-blue-800 mb-2">Welcome, {patient.full_name}</h3>
+              <div className="text-gray-700 space-y-1">
+                <div><span className="font-medium">Patient ID:</span> {patient.id || <span className='italic text-gray-400'>Not available</span>}</div>
+                <div><span className="font-medium">Email:</span> {patient.email || <span className='italic text-gray-400'>Not available</span>}</div>
+                <div><span className="font-medium">Phone Number:</span> {patient.phone_number || <span className='italic text-gray-400'>Not available</span>}</div>
+              </div>
+            </div>
+            <div className="flex flex-col items-center md:items-end">
+              <button className="bg-gradient-to-r from-blue-500 to-green-500 text-white font-semibold px-6 py-2 rounded-lg shadow hover:from-blue-600 hover:to-green-600 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all" onClick={handleEditProfile}>
+                Edit Profile
+              </button>
+            </div>
+          </div>
+        )}
+                {/* Edit Profile Modal */}
+                {showEditModal && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+                    <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md relative">
+                      <h3 className="text-2xl font-bold text-blue-700 mb-6 text-center">Edit Profile</h3>
+                      <form className="flex flex-col gap-4" onSubmit={handleEditSubmit}>
+                        <div>
+                          <label className="block text-gray-700 font-semibold mb-1">Full Name</label>
+                          <input
+                            name="full_name"
+                            value={editForm.full_name || ''}
+                            onChange={handleEditChange}
+                            required
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-gray-700 font-semibold mb-1">Email</label>
+                          <input
+                            name="email"
+                            type="email"
+                            value={editForm.email || ''}
+                            onChange={handleEditChange}
+                            required
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-gray-700 font-semibold mb-1">Phone Number</label>
+                          <input
+                            name="phone_number"
+                            type="text"
+                            value={editForm.phone_number || ''}
+                            onChange={handleEditChange}
+                            required
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
+                          />
+                        </div>
+                        <div className="flex gap-4 mt-4">
+                          <button type="button" className="flex-1 bg-gray-200 text-gray-700 font-semibold px-4 py-2 rounded-lg hover:bg-gray-300" onClick={handleEditCancel}>Cancel</button>
+                          <button type="submit" className="flex-1 bg-gradient-to-r from-blue-500 to-green-500 text-white font-semibold px-4 py-2 rounded-lg hover:from-blue-600 hover:to-green-600">Save</button>
+                        </div>
+                      </form>
+                      <button className="absolute top-3 right-3 text-gray-400 hover:text-gray-700 text-2xl font-bold" onClick={handleEditCancel}>&times;</button>
+                    </div>
+                  </div>
+                )}
+        <div className="flex gap-4 mb-6">
           <button
-            style={{ padding: '0.7em 1.2em', fontSize: '1.05rem', borderRadius: '7px', background: '#38b6ff', color: '#fff', border: 'none', fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px rgba(44,62,80,0.08)' }}
+            className="bg-gradient-to-r from-blue-400 to-blue-600 text-white font-semibold px-4 py-2 rounded-lg shadow hover:from-blue-500 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all"
             onClick={() => navigate('/patient/appointments')}
           >
-            View My Appointments
+            My Appointments
           </button>
           <button
-            style={{ padding: '0.7em 1.2em', fontSize: '1.05rem', borderRadius: '7px', background: '#4f8cff', color: '#fff', border: 'none', fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 8px rgba(44,62,80,0.08)' }}
+            className="bg-gradient-to-r from-green-400 to-green-600 text-white font-semibold px-4 py-2 rounded-lg shadow hover:from-green-500 hover:to-green-700 focus:outline-none focus:ring-2 focus:ring-green-400 transition-all"
             onClick={() => navigate('/book-appointment')}
           >
             Fix Appointment
           </button>
         </div>
-        <form className="patient-dashboard-form" onSubmit={handleSubmit} autoComplete="off">
-          <label>Age
-            <input type="number" name="age" value={form.age} onChange={handleChange} required min="0" max="120" placeholder="Enter your age" />
-          </label>
-          <label>Sex (0=Female, 1=Male)
-            <input type="number" name="sex" value={form.sex} onChange={handleChange} required min="0" max="1" placeholder="0 for Female, 1 for Male" />
-          </label>
-          <label>Socioeconomic Status (SES)
-            <input type="number" name="ses" value={form.ses} onChange={handleChange} required step="any" placeholder="SES score" />
-          </label>
-          <label>CSI Total Score
-            <input type="number" name="csi" value={form.csi} onChange={handleChange} required step="any" placeholder="Central Sensitization Inventory" />
-          </label>
-          <label>SPS Total Score
-            <input type="number" name="sps" value={form.sps} onChange={handleChange} required step="any" placeholder="Sensory Perception Scale" />
-          </label>
-          <label>SAT Total Score
-            <input type="number" name="sat" value={form.sat} onChange={handleChange} required step="any" placeholder="Sleep Assessment Tool" />
-          </label>
-          <button type="submit" disabled={loading}>{loading ? 'Predicting...' : 'Predict Fibromyalgia Risk'}</button>
+        <form className="w-full flex flex-col md:flex-row md:gap-8 mb-6" onSubmit={handleSubmit} autoComplete="off">
+          <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <label className="block">
+              <span className="text-gray-700 font-semibold">Age</span>
+              <input type="number" name="age" value={form.age} onChange={handleChange} required min="0" max="120" placeholder="Enter your age" className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white" />
+            </label>
+            <label className="block">
+              <span className="text-gray-700 font-semibold">Sex (0=Female, 1=Male)</span>
+              <input type="number" name="sex" value={form.sex} onChange={handleChange} required min="0" max="1" placeholder="0 for Female, 1 for Male" className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white" />
+            </label>
+            <label className="block">
+              <span className="text-gray-700 font-semibold">Socioeconomic Status (SES)</span>
+              <input type="number" name="ses" value={form.ses} onChange={handleChange} required step="any" placeholder="SES score" className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white" />
+            </label>
+            <label className="block">
+              <span className="text-gray-700 font-semibold">CSI Total Score</span>
+              <input type="number" name="csi" value={form.csi} onChange={handleChange} required step="any" placeholder="Central Sensitization Inventory" className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white" />
+            </label>
+            <label className="block">
+              <span className="text-gray-700 font-semibold">SPS Total Score</span>
+              <input type="number" name="sps" value={form.sps} onChange={handleChange} required step="any" placeholder="Sensory Perception Scale" className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white" />
+            </label>
+            <label className="block">
+              <span className="text-gray-700 font-semibold">SAT Total Score</span>
+              <input type="number" name="sat" value={form.sat} onChange={handleChange} required step="any" placeholder="Sleep Assessment Tool" className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white" />
+            </label>
+          </div>
+          <div className="flex flex-col justify-center items-center mt-6 md:mt-0 md:ml-6">
+            <button type="submit" disabled={loading} className="w-full bg-gradient-to-r from-blue-500 to-green-500 text-white font-semibold px-6 py-3 rounded-lg shadow hover:from-blue-600 hover:to-green-600 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all">
+              {loading ? 'Predicting...' : 'Predict Fibromyalgia Risk'}
+            </button>
+          </div>
         </form>
         {error && <div className="patient-dashboard-error">{error}</div>}
         {result && (
@@ -298,12 +427,10 @@ function PatientDashboard() {
             />
             <button type="submit" disabled={chatLoading || !chatInput.trim()}>Send</button>
           </form>
-          <div className="chatbot-disclaimer">
-            This information is for educational purposes only and does not replace professional medical advice.
-          </div>
+          
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
